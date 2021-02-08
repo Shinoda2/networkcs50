@@ -1,0 +1,36 @@
+{% extends "network/layout.html" %}
+{% load static %}
+{% block body %}
+<h1>@{{profileuser.username}}</h1>
+{% if profileowner %}
+    <p>{{ profileowner }}</p>
+{% else %}
+    {% if followed %}
+        <form method="POST" action="{% url 'profile' profileuser.username %}">
+            {% csrf_token %}
+            <button type="submit">Unfollow</button>
+        </form>
+    {% else %}
+    <form method="POST" action="{% url 'profile' profileuser.username %}">
+        {% csrf_token %}
+        <button type="submit">Follow</button>
+    </form>
+    {% endif %}
+{% endif %}
+<h3>User information:</h3>
+<ul>
+    <li>{{ profileuser.email }}</li>
+    <li>Total followers: {{ followers }}</li>
+    <li>Followings: {{ followings }}</li>
+</ul>
+<h2>Posts:</h2>
+{% for post in profilepost %}
+    <h4>{{ post.owner }}</h4>
+    <p>{{ post.description }}</p>
+    <p>{{ post.dateandhour }}</p>
+    <p>Likes: {{ post.like }}</p>
+{% endfor %}
+{% endblock %}
+{% block script %}
+    <script src="{% static 'network/profile.js' %}"></script>
+{% endblock %}
