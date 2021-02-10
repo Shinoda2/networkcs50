@@ -1,7 +1,8 @@
 {% extends "network/layout.html" %}
-
+{% load static %}
 {% block body %}
 <h2>All Posts</h2>
+<p>{{request.user}}</p>
 <form method="POST">
     {% csrf_token %}
     <h3>New Post</h3>
@@ -13,12 +14,25 @@
 {% for post in posts %}
 <div>
     <a href="{% url 'profile' post.owner.username %}">@{{ post.owner }}</a>
-    <p>{{ post.description }}</p>
-    <p>{{ post.dateandhour }}</p>
-    <button id="liked">Likes: {{post.like}}</button>
-    <br>
+    {%if request.user == post.owner%}
+    <span class="text-primary edit" data-id="{{post.id}}" id="edit-btn-{{post.id}}">Edit</span>
+    {%endif%}
+    <p id="post-content-{{post.id}}" class="post">{{ post.description }}</p>
+    <textarea data-id="{{post.id}}" id="post-edit-{{post.id}}" style="display:none;" class="form-control textarea" row="3">{{post.description}}</textarea>
+    <div>
+        <span>{{ post.dateandhour }}</span>
+        <span class="like mt-3">
+            {% if not request.user in post.likedby.all %}
+            <img data-id="{{post.id}}" id="post-like-{{post.id}}" class="liked" data-is_liked="no" src="https://img.icons8.com/carbon-copy/100/000000/like--v2.png">
+            {%else%}
+            <img data-id="{{post.id}}" class="liked" data-is_liked="yes" src="https://img.icons8.com/plasticine/100/000000/like.png">
+            {%endif%}
+            <span id="post-count-{{post.id}}">{{post.likedby.count}}</span>
+        </span>
+    </div>
 </div>
 {% endfor %}
-
-
+{% endblock %}
+{% block script %}
+    <script src="{% static 'network/allposts.js' %}"></script>
 {% endblock %}

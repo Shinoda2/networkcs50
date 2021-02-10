@@ -1,0 +1,8 @@
+.liked {
+    width: 20px;
+    height: auto;
+}
+
+.like, .text-primary, .text-success {
+    cursor: pointer;
+}

@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', function (){
+
     like = document.querySelectorAll(".liked");
     edit = document.querySelectorAll(".edit");
     text_area = document.querySelectorAll(".textarea");
