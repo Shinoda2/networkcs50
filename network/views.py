@@ -16,6 +16,9 @@ from .models import *
 
 
 def index(request):
+    posts = Post.objects.all().order_by('-dateandhour')
+    paginator = Paginator(posts, 10)
+    
     if request.method == "POST":
         obj = Post()
 
@@ -23,13 +26,77 @@ def index(request):
         obj.description = request.POST["description"]
         obj.dateandhour = datetime.datetime.now()
         obj.save()
-        return render(request, "network/index.html", {
-            "posts": Post.objects.all().order_by()
-        })
+        if request.GET.get("page") != None:
+            try:
+                posts = paginator.page(request.GET.get("page"))
+            except:
+                posts = paginator.page(1)
+        else:
+            posts = paginator.page(1)
+        return render(request, 'network/index.html', {'posts': posts})
     else:
-        return render(request, "network/index.html", {
-            "posts": Post.objects.all()
-        })
+        if request.GET.get("page") != None:
+            try:
+                posts = paginator.page(request.GET.get("page"))
+            except:
+                posts = paginator.page(1)
+        else:
+            posts = paginator.page(1)
+        return render(request, 'network/index.html', {'posts': posts})
+
+@login_required
+@csrf_exempt
+def follow(request):
+    if request.method == "POST":
+        user = request.POST.get('user')
+        action = request.POST.get('action')
+
+        if action == 'Follow':
+            try:
+                # add user to current user's following list
+                user = User.objects.get(username=user)
+                profile = Follower.objects.get(user=request.user)
+                profile.following.add(user)
+                profile.save()
+
+                # add current user to  user's follower list
+                profile = Follower.objects.get(user=user)
+                profile.follower.add(request.user)
+                profile.save()
+                return JsonResponse({'status': 201, 'action': "Unfollow", "follower_count": profile.follower.count()}, status=201)
+            except:
+                return JsonResponse({}, status=404)
+        else:
+            try:
+                # add user to current user's following list
+                user = User.objects.get(username=user)
+                profile = Follower.objects.get(user=request.user)
+                profile.following.remove(user)
+                profile.save()
+
+                # add current user to  user's follower list
+                profile = Follower.objects.get(user=user)
+                profile.follower.remove(request.user)
+                profile.save()
+                return JsonResponse({'status': 201, 'action': "Follow", "follower_count": profile.follower.count()}, status=201)
+            except:
+                return JsonResponse({}, status=404)
+
+    return JsonResponse({}, status=400)
+        
+@login_required
+def following(request):
+    following = Follower.objects.get(user=request.user).following.all()
+    posts = Post.objects.filter(owner__in=following).order_by('-dateandhour')
+    paginator = Paginator(posts, 10)
+    if request.GET.get("page") != None:
+        try:
+            posts = paginator.page(request.GET.get("page"))
+        except:
+            posts = paginator.page(1)
+    else:
+        posts = paginator.page(1)
+    return render(request, 'network/following.html', {'posts': posts})
 
 @login_required
 @csrf_exempt
@@ -52,18 +119,6 @@ def likeposts(request):
             return JsonResponse({'error': "Post not found", "status": 404})
     return JsonResponse({}, status=400)
 
-def listposts(request):
-    posts = Post.objects.all()
-
-    posts = posts.order_by("-dateandhour").all()
-    return JsonResponse([post.serialize() for post in posts], safe=False)
-
-
-def listprofileposts(request, username):
-    posts = Post.objects.filter(owner = User.objects.get(username = username))
-
-    posts = posts.order_by("-dateandhour").all()
-    return JsonResponse([post.serialize() for post in posts], safe=False)
 
 @login_required
 @csrf_exempt
@@ -129,6 +184,9 @@ def register(request):
                 "message": "Username already taken."
             })
         login(request, user)
+        profile = Follower()
+        profile.user = user
+        profile.save()
         return HttpResponseRedirect(reverse("index"))
     else:
         return render(request, "network/register.html")
@@ -138,49 +196,51 @@ def profile(request, username):
     if request.method == "GET":
         profileuser = User.objects.get(username = username)
         actualuser = User.objects.get(id = request.user.id)
-        profilepost = Post.objects.filter(owner = profileuser.id)
+        posts = Post.objects.filter(owner = profileuser.id).order_by('-dateandhour')
         followed = Follower.objects.filter(following = profileuser.id, follower = actualuser.id)
         follower = Follower.objects.filter(following = profileuser)
         followings = Follower.objects.filter(follower = profileuser)
+        users_profile = Follower.objects.get(user = actualuser )
+        paginator = Paginator(posts, 10)
         totalfollower = len(follower)
         totalfollowing = len(followings)
+        profile = Follower.objects.get(user = profileuser)
+        for i in users_profile.follower.all():
+            print(i)
         if profileuser.id != actualuser.id:
+            if request.GET.get("page") != None:
+                try:
+                    posts = paginator.page(request.GET.get("page"))
+                except:
+                    posts = paginator.page(1)
+            else:
+                posts = paginator.page(1)
+        
             return render(request, "network/profile.html", {
                 "profileuser": profileuser,
-                "profilepost": profilepost,
+                "posts": posts,
                 "followed": followed,
                 "followers": totalfollower,
-                "followings": totalfollowing
+                "followings": totalfollowing,
+                "users_profile": users_profile,
+                "profile": profile
             })
         else:
+            if request.GET.get("page") != None:
+                try:
+                    posts = paginator.page(request.GET.get("page"))
+                except:
+                    posts = paginator.page(1)
+            else:
+                posts = paginator.page(1)
+        
             return render(request, "network/profile.html", {
                 "profileuser": profileuser,
-                "profilepost": profilepost,
-                "profileowner": "you are the owner",
+                "posts": posts,
+                "profileowner": 'Welcome to your profile.',
+                "followed": followed,
                 "followers": totalfollower,
-                "followings": totalfollowing
+                "followings": totalfollowing,
+                "users_profile": users_profile,
+                "profile": profile
             })
-    else:
-        profileuser = User.objects.get(username = username)
-        actualuser = User.objects.get(id = request.user.id)
-        profilepost = Post.objects.filter(owner = profileuser.id)
-        obj = Follower.objects.filter(following = profileuser.id, follower = actualuser.id)
-        if obj:
-            obj.delete()
-            followed = Follower.objects.filter(following = profileuser.id, follower = actualuser.id)
-            follower = Follower.objects.filter(following = profileuser)
-            followings = Follower.objects.filter(follower = profileuser)
-            totalfollower = len(follower)
-            totalfollowing = len(followings)
-            return HttpResponseRedirect(reverse("profile", args=(username,)))
-        else:
-            obj = Follower()
-            obj.following = profileuser
-            obj.follower = actualuser
-            obj.save()
-            followed = Follower.objects.filter(following = profileuser.id, follower = actualuser.id)
-            follower = Follower.objects.filter(following = profileuser)
-            followings = Follower.objects.filter(follower = profileuser)
-            totalfollower = len(follower)
-            totalfollowing = len(followings)
-            return HttpResponseRedirect(reverse("profile", args=(username,)))

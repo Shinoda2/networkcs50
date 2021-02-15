@@ -5,8 +5,14 @@ class User(AbstractUser):
     pass
 
 class Follower(models.Model):
-    follower = models.ForeignKey(User, on_delete=models.CASCADE, related_name="followwho")
-    following = models.ForeignKey(User, on_delete=models.CASCADE, related_name="followedby")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, default=2)
+    follower = models.ManyToManyField(
+        User,  blank=True, related_name="follower_user")
+    following = models.ManyToManyField(
+        User,  blank=True, related_name="following_user")
+
+    def __str__(self):
+        return self.user.username
 
 class Post(models.Model):
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="postowner")

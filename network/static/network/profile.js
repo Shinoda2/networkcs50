@@ -106,4 +106,4 @@ document.addEventListener('DOMContentLoaded', function (){
         edit_btn.setAttribute("class", "text-primary edit");
       }
     }
-})
+});

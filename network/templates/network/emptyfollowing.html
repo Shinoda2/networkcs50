@@ -1,0 +1,10 @@
+{% extends "network/layout.html" %}
+{% load static %}
+{% block body %}
+<div style="text-align: center; margin-top: 10%;">
+    <h1>You don't follow anyone yet...</h1>
+</div>
+<div style="margin-top: 5%; text-align: center;">
+    <a href="{% url 'index' %}" id="emptyfollowbutton">Go to All Posts section and follow someone.</a>
+</div>
+{% endblock %}
